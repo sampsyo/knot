@@ -1,0 +1,7 @@
+[package]
+name = "knot"
+version = "0.1.0"
+authors = ["Adrian Sampson <adrian@radbox.org>"]
+
+[dependencies]
+pulldown-cmark = "0.0.3"
