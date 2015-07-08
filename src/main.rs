@@ -26,8 +26,14 @@ fn read_file(filename: &str) -> Result<String, io::Error> {
     Ok(contents)
 }
 
-fn opt_str_or(matches: &Matches, opt: &str, default: &str) -> String {
-    matches.opt_str(opt).unwrap_or(default.to_string())
+// A little convenient extension trait for getopts.
+trait MatchesExt {
+    fn opt_str_or(&self, opt: &str, default: &str) -> String;
+}
+impl MatchesExt for Matches {
+    fn opt_str_or(&self, opt: &str, default: &str) -> String {
+        self.opt_str(opt).unwrap_or(default.to_string())
+    }
 }
 
 fn main() {
@@ -46,7 +52,7 @@ fn main() {
             }
         };
 
-        outdir = opt_str_or(&matches, "out", "_public");
+        outdir = matches.opt_str_or("out", "_public");
     }
 
     let outpath = Path::new(&outdir);
