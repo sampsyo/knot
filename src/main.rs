@@ -9,7 +9,7 @@ use std::env;
 
 use pulldown_cmark::Parser;
 use pulldown_cmark::html;
-use getopts::Options;
+use getopts::{Options, Matches};
 
 // Stolen from the pulldown_cmark example.
 fn markdown_to_html(text: &str) -> String {
@@ -26,21 +26,29 @@ fn read_file(filename: &str) -> Result<String, io::Error> {
     Ok(contents)
 }
 
+fn opt_str_or(matches: &Matches, opt: &str, default: &str) -> String {
+    matches.opt_str(opt).unwrap_or(default.to_string())
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
 
-    let mut opts = Options::new();
-    opts.optopt("o", "out", "output directory", "PATH");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => {
-            writeln!(&mut std::io::stderr(), "{}", f).unwrap();
-            return;
-        }
-    };
+    let outdir : String;
+    {
+        let mut opts = Options::new();
+        opts.optopt("o", "out", "output directory", "PATH");
+        let matches = match opts.parse(&args[1..]) {
+            Ok(m) => { m }
+            Err(f) => {
+                writeln!(&mut std::io::stderr(), "{}", f).unwrap();
+                return;
+            }
+        };
 
-    let outdir = matches.opt_str("out").unwrap_or("_public".to_string());
+        outdir = opt_str_or(&matches, "out", "_public");
+    }
+
     let outpath = Path::new(&outdir);
     println!("{:?}", outpath);
 
