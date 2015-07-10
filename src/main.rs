@@ -4,7 +4,7 @@ extern crate getopts;
 use std::io;
 use std::io::{Read, Write};
 use std::path::Path;
-use std::fs::File;
+use std::fs;
 use std::env;
 
 use pulldown_cmark::Parser;
@@ -20,7 +20,7 @@ fn markdown_to_html(text: &str) -> String {
 }
 
 fn read_file(filename: &str) -> Result<String, io::Error> {
-    let mut file = try!(File::open(filename));
+    let mut file = try!(fs::File::open(filename));
     let mut contents = String::new();
     try!(file.read_to_string(&mut contents));
     Ok(contents)
@@ -41,6 +41,7 @@ fn main() {
     let program = args[0].clone();
 
     let outdir : String;
+    let indir : String;
     {
         let mut opts = Options::new();
         opts.optopt("o", "out", "output directory", "PATH");
@@ -53,10 +54,27 @@ fn main() {
         };
 
         outdir = matches.opt_str_or("out", "_public");
+        indir = if matches.free.len() > 1 {
+            matches.free[0].clone()
+        } else {
+            ".".to_string()
+        }
     }
 
-    let outpath = Path::new(&outdir);
-    println!("{:?}", outpath);
+    println!("{:?} -> {:?}", indir, outdir);
+
+    for entry in fs::read_dir(indir).unwrap() {
+        let e = entry.unwrap();
+
+        // This is a little sad. Waiting on:
+        // https://github.com/rust-lang/rfcs/issues/900
+        let os_name = e.file_name();
+        let name = os_name.to_string_lossy();
+
+        if !name.starts_with(".") && !name.starts_with("_") {
+            println!("{:?}", e.path());
+        }
+    }
 
     let md = read_file("test.md");
     let html = markdown_to_html(&md.unwrap());
