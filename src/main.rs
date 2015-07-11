@@ -36,6 +36,15 @@ impl MatchesExt for Matches {
     }
 }
 
+fn is_note(e: &fs::DirEntry) -> bool {
+    // This is a little sad. Waiting on:
+    // https://github.com/rust-lang/rfcs/issues/900
+    let os_name = e.file_name();
+    let name = os_name.to_string_lossy();
+
+    !name.starts_with(".") && !name.starts_with("_")
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -63,16 +72,17 @@ fn main() {
 
     println!("{:?} -> {:?}", indir, outdir);
 
-    for entry in fs::read_dir(indir).unwrap() {
-        let e = entry.unwrap();
-
-        // This is a little sad. Waiting on:
-        // https://github.com/rust-lang/rfcs/issues/900
-        let os_name = e.file_name();
-        let name = os_name.to_string_lossy();
-
-        if !name.starts_with(".") && !name.starts_with("_") {
-            println!("{:?}", e.path());
+    match fs::read_dir(indir) {
+        Err(err) => println!("cannot list directory: {}", err),
+        Ok(rd) => for entry in rd {
+            match entry {
+                Err(err) => println!("could not read entry: {}", err),
+                Ok(e) => {
+                    if is_note(&e) {
+                        println!("{:?}", e.path());
+                    }
+                }
+            }
         }
     }
 
