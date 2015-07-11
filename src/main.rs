@@ -45,10 +45,14 @@ fn is_note(e: &fs::DirEntry) -> bool {
     !name.starts_with(".") && !name.starts_with("_")
 }
 
-fn render_note(note: &Path, destdir: &Path) {
-    let name = note.file_name().unwrap();
-    let dest = destdir.join(name);
-    println!("{:?} -> {:?}", note, dest);
+fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
+    if let Some(name) = note.file_name() {
+        let dest = destdir.join(name);
+        println!("{:?} -> {:?}", note, dest);
+    } else {
+        println!("no filename");
+    }
+    Ok(())
 }
 
 fn main() {
@@ -86,7 +90,7 @@ fn main() {
                 Err(err) => println!("could not read entry: {}", err),
                 Ok(e) => {
                     if is_note(&e) {
-                        render_note(&e.path(), &outpath);
+                        render_note(&e.path(), &outpath).unwrap();
                     }
                 }
             }
