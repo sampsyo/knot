@@ -45,6 +45,12 @@ fn is_note(e: &fs::DirEntry) -> bool {
     !name.starts_with(".") && !name.starts_with("_")
 }
 
+fn render_note(note: &Path, destdir: &Path) {
+    let name = note.file_name().unwrap();
+    let dest = destdir.join(name);
+    println!("{:?} -> {:?}", note, dest);
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -71,6 +77,7 @@ fn main() {
     }
 
     println!("{:?} -> {:?}", indir, outdir);
+    let outpath = Path::new(&outdir);
 
     match fs::read_dir(indir) {
         Err(err) => println!("cannot list directory: {}", err),
@@ -79,7 +86,7 @@ fn main() {
                 Err(err) => println!("could not read entry: {}", err),
                 Ok(e) => {
                     if is_note(&e) {
-                        println!("{:?}", e.path());
+                        render_note(&e.path(), &outpath);
                     }
                 }
             }
