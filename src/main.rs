@@ -75,6 +75,8 @@ fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
 fn render_notes(indir: &str, outdir: &str) -> io::Result<()> {
     let outpath = Path::new(&outdir);
 
+    try!(std::fs::create_dir_all(&outpath));
+
     let rd = try!(fs::read_dir(indir));
     for entry in rd {
         let e = try!(entry);
@@ -112,9 +114,6 @@ fn main() {
     }
 
     println!("{:?} -> {:?}", indir, outdir);
-    if let Err(err) = std::fs::create_dir_all(&outdir) {
-        println!("could not create output directory {}: {}", outdir, err);
-    }
     if let Err(err) = render_notes(&indir, &outdir) {
         println!("rendering failed: {}", err);
     }
