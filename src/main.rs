@@ -1,5 +1,6 @@
 extern crate pulldown_cmark;
 extern crate getopts;
+extern crate toml;
 
 use std::io;
 use std::io::{Read, Write};
@@ -147,7 +148,13 @@ fn main() {
         let confdirpath = Path::new(&confdir);
         let conffilepath = confdirpath.join("knot.toml");
         if let Ok(conftoml) = read_file(&conffilepath) {
-            println!("yes config");
+            let mut parser = toml::Parser::new(&conftoml);
+            match parser.parse() {
+                Some(value) => println!("config: {:?}", value),
+                None => {
+                    println!("could not parse config: {:?}", parser.errors);
+                }
+            }
         } else {
             println!("no config");
         }
