@@ -58,17 +58,11 @@ fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
 fn render_notes(indir: &str, outdir: &str) -> io::Result<()> {
     let outpath = Path::new(&outdir);
 
-    match fs::read_dir(indir) {
-        Err(err) => println!("cannot list directory: {}", err),
-        Ok(rd) => for entry in rd {
-            match entry {
-                Err(err) => println!("could not read entry: {}", err),
-                Ok(e) => {
-                    if is_note(&e) {
-                        render_note(&e.path(), &outpath).unwrap();
-                    }
-                }
-            }
+    let rd = try!(fs::read_dir(indir));
+    for entry in rd {
+        let e = try!(entry);
+        if is_note(&e) {
+            try!(render_note(&e.path(), &outpath));
         }
     }
 
