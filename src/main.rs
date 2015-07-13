@@ -109,6 +109,7 @@ fn main() {
     {
         let mut opts = Options::new();
         opts.optopt("o", "out", "output directory", "PATH");
+        opts.optflag("h", "help", "show this help message");
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => { m }
             Err(f) => {
@@ -117,6 +118,10 @@ fn main() {
                 return;
             }
         };
+
+        if matches.opt_present("help") {
+            usage(&program, &opts, false);
+        }
 
         outdir = matches.opt_str_or("out", "_public");
         indir = if matches.free.len() >= 1 {
