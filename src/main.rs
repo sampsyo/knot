@@ -87,7 +87,7 @@ fn main() {
         };
 
         outdir = matches.opt_str_or("out", "_public");
-        indir = if matches.free.len() > 1 {
+        indir = if matches.free.len() >= 1 {
             matches.free[0].clone()
         } else {
             ".".to_string()
@@ -95,6 +95,9 @@ fn main() {
     }
 
     println!("{:?} -> {:?}", indir, outdir);
+    if let Err(err) = std::fs::create_dir_all(&outdir) {
+        println!("could not create output directory {}: {}", outdir, err);
+    }
     if let Err(err) = render_notes(&indir, &outdir) {
         println!("rendering failed: {}", err);
     }
