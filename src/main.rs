@@ -58,7 +58,6 @@ fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
         let dest = destdir.join(name);
         println!("{:?} -> {:?}", note, dest);
 
-        let md = read_file(note);
         match read_file(note) {
             Err(err) => println!("could not read note {:?}: {}", name, err),
             Ok(md) => {
@@ -88,6 +87,19 @@ fn render_notes(indir: &str, outdir: &str) -> io::Result<()> {
     Ok(())
 }
 
+fn usage(program: &str, opts: &Options, error: bool) {
+    let brief = format!("usage: {} [OPTIONS] NOTEDIR", program);
+    let message = opts.usage(&brief);
+    let message_bytes = message.as_bytes();
+
+    // Not sure why I can't `let writer = if error io::stderr else io::stdout`.
+    if error {
+        io::stderr().write_all(&message_bytes).unwrap();
+    } else {
+        io::stdout().write_all(&message_bytes).unwrap();
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -101,6 +113,7 @@ fn main() {
             Ok(m) => { m }
             Err(f) => {
                 writeln!(&mut std::io::stderr(), "{}", f).unwrap();
+                usage(&program, &opts, true);
                 return;
             }
         };
