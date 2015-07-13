@@ -19,7 +19,7 @@ fn markdown_to_html(text: &str) -> String {
     s
 }
 
-fn read_file(filename: &str) -> Result<String, io::Error> {
+fn read_file(filename: &Path) -> Result<String, io::Error> {
     let mut file = try!(fs::File::open(filename));
     let mut contents = String::new();
     try!(file.read_to_string(&mut contents));
@@ -42,15 +42,27 @@ fn is_note(e: &fs::DirEntry) -> bool {
     let os_name = e.file_name();
     let name = os_name.to_string_lossy();
 
-    !name.starts_with(".") && !name.starts_with("_")
+    // Don't hardcode these! Also, eventually work with directories.
+    !name.starts_with(".") && !name.starts_with("_") &&
+        (name.ends_with(".markdown") || name.ends_with(".md")
+         || name.ends_with(".mkdn"))
 }
 
 fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
     if let Some(name) = note.file_name() {
         let dest = destdir.join(name);
         println!("{:?} -> {:?}", note, dest);
+
+        let md = read_file(note);
+        match read_file(note) {
+            Err(err) => println!("could not read note {:?}: {}", name, err),
+            Ok(md) => {
+                let html = markdown_to_html(&md);
+                println!("{}", html);
+            }
+        }
     } else {
-        println!("no filename");
+        println!("no filename"); // how?
     }
     Ok(())
 }
@@ -101,8 +113,4 @@ fn main() {
     if let Err(err) = render_notes(&indir, &outdir) {
         println!("rendering failed: {}", err);
     }
-
-    let md = read_file("test.md");
-    let html = markdown_to_html(&md.unwrap());
-    println!("{}", html);
 }
