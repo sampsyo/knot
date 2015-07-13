@@ -104,6 +104,7 @@ fn main() {
     // Parse command-line options.
     let outdir : String;
     let indir : String;
+    let confdir : String;
     {
         let args: Vec<String> = env::args().collect();
         let program = args[0].clone();
@@ -111,6 +112,7 @@ fn main() {
         let mut opts = Options::new();
         opts.optopt("o", "out", "output directory", "PATH");
         opts.optflag("h", "help", "show this help message");
+        opts.optopt("c", "config", "configuration directory", "PATH");
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => { m }
             Err(f) => {
@@ -136,6 +138,18 @@ fn main() {
             matches.free[0].clone()
         } else {
             ".".to_string()
+        };
+        confdir = matches.opt_str_or("config", "_knot");
+    }
+
+    // Configuration.
+    {
+        let confdirpath = Path::new(&confdir);
+        let conffilepath = confdirpath.join("knot.toml");
+        if let Ok(conftoml) = read_file(&conffilepath) {
+            println!("yes config");
+        } else {
+            println!("no config");
         }
     }
 
