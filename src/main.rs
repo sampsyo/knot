@@ -26,6 +26,11 @@ fn read_file(filename: &Path) -> Result<String, io::Error> {
     Ok(contents)
 }
 
+fn dump_file(filename: &Path, contents: &str) -> io::Result<()> {
+    let mut f = try!(fs::File::create(filename));
+    f.write_all(contents.as_bytes())
+}
+
 // A little convenient extension trait for getopts.
 trait MatchesExt {
     fn opt_str_or(&self, opt: &str, default: &str) -> String;
@@ -58,7 +63,7 @@ fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
             Err(err) => println!("could not read note {:?}: {}", name, err),
             Ok(md) => {
                 let html = markdown_to_html(&md);
-                println!("{}", html);
+                try!(dump_file(&dest, &html));
             }
         }
     } else {
