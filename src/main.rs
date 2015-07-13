@@ -55,6 +55,26 @@ fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
     Ok(())
 }
 
+fn render_notes(indir: &str, outdir: &str) -> io::Result<()> {
+    let outpath = Path::new(&outdir);
+
+    match fs::read_dir(indir) {
+        Err(err) => println!("cannot list directory: {}", err),
+        Ok(rd) => for entry in rd {
+            match entry {
+                Err(err) => println!("could not read entry: {}", err),
+                Ok(e) => {
+                    if is_note(&e) {
+                        render_note(&e.path(), &outpath).unwrap();
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -81,20 +101,8 @@ fn main() {
     }
 
     println!("{:?} -> {:?}", indir, outdir);
-    let outpath = Path::new(&outdir);
-
-    match fs::read_dir(indir) {
-        Err(err) => println!("cannot list directory: {}", err),
-        Ok(rd) => for entry in rd {
-            match entry {
-                Err(err) => println!("could not read entry: {}", err),
-                Ok(e) => {
-                    if is_note(&e) {
-                        render_note(&e.path(), &outpath).unwrap();
-                    }
-                }
-            }
-        }
+    if let Err(err) = render_notes(&indir, &outdir) {
+        println!("rendering failed: {}", err);
     }
 
     let md = read_file("test.md");
