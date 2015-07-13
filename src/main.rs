@@ -101,12 +101,13 @@ fn usage(program: &str, opts: &Options, error: bool) {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let program = args[0].clone();
-
+    // Parse command-line options.
     let outdir : String;
     let indir : String;
     {
+        let args: Vec<String> = env::args().collect();
+        let program = args[0].clone();
+
         let mut opts = Options::new();
         opts.optopt("o", "out", "output directory", "PATH");
         opts.optflag("h", "help", "show this help message");
@@ -115,14 +116,21 @@ fn main() {
             Err(f) => {
                 writeln!(&mut std::io::stderr(), "{}", f).unwrap();
                 usage(&program, &opts, true);
-                return;
+                std::process::exit(1);
+
+                // Because this is unstable:
+                // std::env::set_exit_status(1);
+                // return;
             }
         };
 
+        // Help flag.
         if matches.opt_present("help") {
             usage(&program, &opts, false);
+            return;
         }
 
+        // Directories for rendering.
         outdir = matches.opt_str_or("out", "_public");
         indir = if matches.free.len() >= 1 {
             matches.free[0].clone()
