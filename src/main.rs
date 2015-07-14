@@ -38,11 +38,11 @@ fn hash_str(h: &mut Digest, nbytes: usize) -> String {
     bytes[0 .. trunc - 1].to_base64(config)
 }
 
-fn note_filename(name: &str, secret: &str) -> String {
+fn note_dirname(name: &str, secret: &str) -> String {
     let mut h = crypto::sha2::Sha256::new();
     h.input_str(name);
     h.input_str(secret);
-    hash_str(&mut h, FILENAME_BYTES) + ".html"
+    hash_str(&mut h, FILENAME_BYTES)
 }
 
 // Stolen from the pulldown_cmark example.
@@ -89,10 +89,13 @@ fn is_note(e: &fs::DirEntry) -> bool {
 
 fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
     if let Some(name) = note.file_name() {
-        // Get the destination.
-        let basename = note_filename(&name.to_string_lossy(), &config.secret);
-        let dest = destdir.join(basename);
-        println!("{:?} -> {:?}", note, dest);
+        // Get the destination and create its enclosing directory.
+        let basename = note_dirname(&name.to_string_lossy(), &config.secret);
+        let notedir = destdir.join(basename);
+        try!(std::fs::create_dir_all(&notedir));
+        let dest = notedir.join("index.html");
+        println!("{} -> {}", name.to_string_lossy(),
+                 notedir.to_string_lossy());
 
         // Render the HTML from the Markdown.
         let md = try!(read_file(note));
@@ -112,8 +115,6 @@ fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
 
 fn render_notes(indir: &str, outdir: &str, config: &Config) -> io::Result<()> {
     let outpath = Path::new(&outdir);
-
-    try!(std::fs::create_dir_all(&outpath));
 
     let rd = try!(fs::read_dir(indir));
     for entry in rd {
@@ -228,7 +229,6 @@ fn main() {
     // Configuration.
     let config = load_config(&confdir).unwrap();
 
-    println!("{:?} -> {:?}", indir, outdir);
     if let Err(err) = render_notes(&indir, &outdir, &config) {
         println!("rendering failed: {}", err);
     }
