@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::env;
 
-use pulldown_cmark::Parser;
+use pulldown_cmark::{Parser, Event, Tag};
 use pulldown_cmark::html;
 use getopts::{Options, Matches};
 use crypto::digest::Digest;
@@ -46,12 +46,52 @@ fn note_dirname(name: &str, secret: &str) -> String {
     hash_str(&mut h, FILENAME_BYTES)
 }
 
-// Stolen from the pulldown_cmark example.
-fn markdown_to_html(text: &str) -> String {
-    let mut s = String::with_capacity(text.len() * 3 / 2);
-    let p = Parser::new(&text);
-    html::push_html(&mut s, p);
-    s
+// Produce the HTML body for the Markdown document along with the text of the
+// first header.
+fn render_markdown(text: &str) -> (String, String) {
+    // We will collect the first header in the document here during parsing.
+    let mut the_header = String::new();
+
+    let body = {
+        // Magic ratio stolen from the pulldown_cmark example.
+        let mut out = String::with_capacity(text.len() * 3 / 2);
+        let parser = Parser::new(&text);
+
+        // Hook into the parser to pull out the first heading.
+        let mut first_header = true;
+        let mut in_header = false;
+        let extracting_parser = parser.inspect(|event| {
+            match *event {
+                Event::Start(ref t) => {
+                    match *t {
+                        Tag::Header(_) => if first_header {
+                            in_header = true;
+                            first_header = false;
+                        },
+                        _ => (),
+                    }
+                },
+                Event::End(ref t) => {
+                    match *t {
+                        Tag::Header(_) => if in_header {
+                            in_header = false;
+                        },
+                        _ => (),
+                    }
+                },
+                Event::Text(ref s) => if in_header {
+                    the_header.push_str(&s);
+                },
+                _ => (),
+            };
+        });
+
+        // Run the parser and render HTML.
+        html::push_html(&mut out, extracting_parser);
+        out
+    };
+
+    (body, the_header)
 }
 
 fn read_file(filename: &Path) -> Result<String, io::Error> {
@@ -95,11 +135,12 @@ fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
 
         // Render the HTML from the Markdown.
         let md = try!(read_file(note));
-        let content = markdown_to_html(&md);
+        let (content, title) = render_markdown(&md);
 
         // Render the template to the destination file.
         let data = mustache::MapBuilder::new()
             .insert_str("content", content)
+            .insert_str("title", title)
             .build();
         let mut f = try!(fs::File::create(dest));
         config.template.render_data(&mut f, &data);
