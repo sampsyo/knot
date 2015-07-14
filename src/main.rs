@@ -17,6 +17,8 @@ use crypto::digest::Digest;
 use rustc_serialize::base64;
 use rustc_serialize::base64::ToBase64;
 
+const FILENAME_BYTES : usize = 10;
+
 fn hash_str(h: &mut Digest, nbytes: usize) -> String {
     let hashbytes = h.output_bytes();
     let mut bytes : Vec<u8> = vec![0; hashbytes];
@@ -39,7 +41,7 @@ fn note_filename(name: &str, secret: &str) -> String {
     let mut h = crypto::sha2::Sha256::new();
     h.input_str(name);
     h.input_str(secret);
-    hash_str(&mut h, 10) + ".html" // TODO truncate
+    hash_str(&mut h, FILENAME_BYTES) + ".html"
 }
 
 // Stolen from the pulldown_cmark example.
