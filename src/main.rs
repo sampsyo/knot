@@ -1,6 +1,8 @@
 extern crate pulldown_cmark;
 extern crate getopts;
 extern crate toml;
+extern crate crypto;
+extern crate rustc_serialize;
 
 use std::io;
 use std::io::{Read, Write};
@@ -11,6 +13,26 @@ use std::env;
 use pulldown_cmark::Parser;
 use pulldown_cmark::html;
 use getopts::{Options, Matches};
+use crypto::digest::Digest;
+use rustc_serialize::base64;
+use rustc_serialize::base64::ToBase64;
+
+// Hash wrappers.
+fn hash(s: &str) -> String {
+    let mut h = crypto::sha2::Sha256::new();
+    h.input_str(s);
+
+    let mut bytes : Vec<u8> = vec![0; h.output_bytes()];
+    h.result(&mut bytes);
+
+    let config = base64::Config {
+        char_set: base64::UrlSafe,
+        newline: base64::Newline::LF,
+        pad: false,
+        line_length: None,
+    };
+    bytes.to_base64(config)
+}
 
 // Stolen from the pulldown_cmark example.
 fn markdown_to_html(text: &str) -> String {
@@ -56,7 +78,9 @@ fn is_note(e: &fs::DirEntry) -> bool {
 
 fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
     if let Some(name) = note.file_name() {
-        let dest = destdir.join(name);
+        let key = hash(&name.to_string_lossy()); // TODO use secret
+
+        let dest = destdir.join(key);
         println!("{:?} -> {:?}", note, dest);
 
         match read_file(note) {

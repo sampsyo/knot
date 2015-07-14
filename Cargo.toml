@@ -7,3 +7,5 @@ authors = ["Adrian Sampson <adrian@radbox.org>"]
 pulldown-cmark = "0.0.3"
 getopts = "0.2"
 toml = "0.1.21"
+rust-crypto = "*"
+rustc-serialize = "0.3.15"
