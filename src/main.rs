@@ -2,7 +2,7 @@ extern crate pulldown_cmark;
 extern crate getopts;
 extern crate toml;
 extern crate crypto;
-extern crate rustc_serialize;
+extern crate base32;
 extern crate mustache;
 
 use std::io;
@@ -15,10 +15,8 @@ use pulldown_cmark::{Parser, Event, Tag};
 use pulldown_cmark::html;
 use getopts::{Options, Matches};
 use crypto::digest::Digest;
-use rustc_serialize::base64;
-use rustc_serialize::base64::ToBase64;
 
-const FILENAME_BYTES : usize = 10;
+const FILENAME_BYTES : usize = 8;
 const MARKDOWN_NOTE_NAME : &'static str = "note.md";
 
 fn hash_str(h: &mut Digest, nbytes: usize) -> String {
@@ -26,17 +24,12 @@ fn hash_str(h: &mut Digest, nbytes: usize) -> String {
     let mut bytes : Vec<u8> = vec![0; hashbytes];
     h.result(&mut bytes);
 
-    let config = base64::Config {
-        char_set: base64::UrlSafe,
-        newline: base64::Newline::LF,
-        pad: false,
-        line_length: None,
-    };
-
     // zero or too many => get the whole hash.
     let trunc = if nbytes == 0 || nbytes > hashbytes { hashbytes }
         else { nbytes };
-    bytes[0 .. trunc - 1].to_base64(config)
+    let trunc_bytes = &bytes[0 .. trunc - 1];
+
+    base32::encode(base32::Alphabet::Crockford, trunc_bytes)
 }
 
 fn note_dirname(note_path: &Path, secret: &str) -> String {
