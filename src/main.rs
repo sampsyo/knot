@@ -87,9 +87,9 @@ fn is_note(e: &fs::DirEntry) -> bool {
          || name.ends_with(".mkdn"))
 }
 
-fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
+fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
     if let Some(name) = note.file_name() {
-        let key = note_filename(&name.to_string_lossy(), ""); // TODO use secret
+        let key = note_filename(&name.to_string_lossy(), &config.secret);
 
         let dest = destdir.join(key);
         println!("{:?} -> {:?}", note, dest);
@@ -103,7 +103,7 @@ fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn render_notes(indir: &str, outdir: &str) -> io::Result<()> {
+fn render_notes(indir: &str, outdir: &str, config: &Config) -> io::Result<()> {
     let outpath = Path::new(&outdir);
 
     try!(std::fs::create_dir_all(&outpath));
@@ -112,7 +112,7 @@ fn render_notes(indir: &str, outdir: &str) -> io::Result<()> {
     for entry in rd {
         let e = try!(entry);
         if is_note(&e) {
-            try!(render_note(&e.path(), &outpath));
+            try!(render_note(&e.path(), &outpath, &config));
         }
     }
 
@@ -222,7 +222,7 @@ fn main() {
     let config = load_config(&confdir).unwrap();
 
     println!("{:?} -> {:?}", indir, outdir);
-    if let Err(err) = render_notes(&indir, &outdir) {
+    if let Err(err) = render_notes(&indir, &outdir, &config) {
         println!("rendering failed: {}", err);
     }
 }
