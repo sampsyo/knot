@@ -122,11 +122,11 @@ fn is_note(e: &fs::DirEntry) -> bool {
          || name.ends_with(".mkdn") || name.ends_with(".txt"))
 }
 
-fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
+fn render_note(note: &Path, config: &Config) -> io::Result<()> {
     if let Some(name) = note.file_name() {
         // Get the destination and create its enclosing directory.
         let basename = note_dirname(&note, &config.secret);
-        let notedir = destdir.join(&basename);
+        let notedir = config.outdir.join(&basename);
         try!(std::fs::create_dir_all(&notedir));
         let dest = notedir.join("index.html");
         if !config.quiet {
@@ -158,7 +158,7 @@ fn render_notes(config: &Config) -> io::Result<()> {
     for entry in try!(fs::read_dir(&config.indir)) {
         let e = try!(entry);
         if is_note(&e) {
-            try!(render_note(&e.path(), &config.outdir, &config));
+            try!(render_note(&e.path(), &config));
         }
     }
 
