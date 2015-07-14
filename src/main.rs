@@ -89,14 +89,21 @@ fn is_note(e: &fs::DirEntry) -> bool {
 
 fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
     if let Some(name) = note.file_name() {
-        let key = note_filename(&name.to_string_lossy(), &config.secret);
-
-        let dest = destdir.join(key);
+        // Get the destination.
+        let basename = note_filename(&name.to_string_lossy(), &config.secret);
+        let dest = destdir.join(basename);
         println!("{:?} -> {:?}", note, dest);
 
+        // Render the HTML from the Markdown.
         let md = try!(read_file(note));
-        let html = markdown_to_html(&md);
-        try!(dump_file(&dest, &html));
+        let content = markdown_to_html(&md);
+
+        // Render the template to the destination file.
+        let data = mustache::MapBuilder::new()
+            .insert_str("content", content)
+            .build();
+        let mut f = try!(fs::File::create(dest));
+        config.template.render_data(&mut f, &data);
     } else {
         println!("no filename"); // how?
     }
