@@ -129,7 +129,9 @@ fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
         let notedir = destdir.join(&basename);
         try!(std::fs::create_dir_all(&notedir));
         let dest = notedir.join("index.html");
-        println!("{} -> {}", name.to_string_lossy(), basename);
+        if !config.quiet {
+            println!("{} -> {}", name.to_string_lossy(), basename);
+        }
 
         // Render the HTML from the Markdown.
         let md = try!(read_file(note));
@@ -170,8 +172,10 @@ fn render_notes(indir: &str, outdir: &str, config: &Config) -> io::Result<()> {
             // TODO copy directories too
             let frompath = e.path();
             let topath = outpath.join(e.file_name());
-            println!("{} -> {}", frompath.to_string_lossy(),
-                     topath.to_string_lossy());
+            if !config.quiet {
+                println!("{} -> {}", frompath.to_string_lossy(),
+                         topath.to_string_lossy());
+            }
             try!(fs::copy(frompath, topath));
         }
     }
@@ -196,10 +200,11 @@ struct Config {
     secret: String,
     template: mustache::Template,
     confdir: PathBuf,
+    quiet: bool,
 }
 
-fn load_config(confdir: &str) -> Result<Config, &'static str> {
-    let confdirpath = Path::new(&confdir);
+fn load_config(options: &Options) -> Result<Config, &'static str> {
+    let confdirpath = PathBuf::from(&options.confdir);
     let conffilepath = confdirpath.join("knot.toml");
 
     // Load the configuration.
@@ -234,7 +239,8 @@ fn load_config(confdir: &str) -> Result<Config, &'static str> {
     Ok(Config {
         secret: secret.to_string(),
         template: templ,
-        confdir: PathBuf::from(confdir),
+        confdir: confdirpath,
+        quiet: options.quiet,
     })
 }
 
@@ -298,7 +304,7 @@ fn main() {
     let opts = get_options();
 
     // Configuration.
-    let config = load_config(&opts.confdir).unwrap();
+    let config = load_config(&opts).unwrap();
 
     if let Err(err) = render_notes(&opts.indir, &opts.outdir, &config) {
         println!("rendering failed: {}", err);
