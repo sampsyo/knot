@@ -7,7 +7,7 @@ extern crate mustache;
 
 use std::io;
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
 use std::env;
 
@@ -111,11 +111,25 @@ fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
 fn render_notes(indir: &str, outdir: &str, config: &Config) -> io::Result<()> {
     let outpath = Path::new(&outdir);
 
-    let rd = try!(fs::read_dir(indir));
-    for entry in rd {
+    // Render the notes themselves.
+    for entry in try!(fs::read_dir(indir)) {
         let e = try!(entry);
         if is_note(&e) {
             try!(render_note(&e.path(), &outpath, &config));
+        }
+    }
+
+    // Copy the static files.
+    let staticdir = config.confdir.join("static");
+    if let Ok(rd) = fs::read_dir(&staticdir) {
+        for entry in rd {
+            let e = try!(entry);
+            // TODO copy directories too
+            let frompath = e.path();
+            let topath = outpath.join(e.file_name());
+            println!("{} -> {}", frompath.to_string_lossy(),
+                     topath.to_string_lossy());
+            try!(fs::copy(frompath, topath));
         }
     }
 
@@ -138,6 +152,7 @@ fn usage(program: &str, opts: &Options, error: bool) {
 struct Config {
     secret: String,
     template: mustache::Template,
+    confdir: PathBuf,
 }
 
 fn load_config(confdir: &str) -> Result<Config, &'static str> {
@@ -176,6 +191,7 @@ fn load_config(confdir: &str) -> Result<Config, &'static str> {
     Ok(Config {
         secret: secret.to_string(),
         template: templ,
+        confdir: PathBuf::from(confdir),
     })
 }
 
