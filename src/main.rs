@@ -132,11 +132,10 @@ fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
     if let Some(name) = note.file_name() {
         // Get the destination and create its enclosing directory.
         let basename = note_dirname(&note, &config.secret);
-        let notedir = destdir.join(basename);
+        let notedir = destdir.join(&basename);
         try!(std::fs::create_dir_all(&notedir));
         let dest = notedir.join("index.html");
-        println!("{} -> {}", name.to_string_lossy(),
-                 notedir.to_string_lossy());
+        println!("{} -> {}", name.to_string_lossy(), basename);
 
         // Render the HTML from the Markdown.
         let md = try!(read_file(note));
