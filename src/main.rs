@@ -14,7 +14,6 @@ use std::ascii::AsciiExt;
 
 use pulldown_cmark::{Parser, Event, Tag};
 use pulldown_cmark::html;
-use getopts::{Options, Matches};
 use crypto::digest::Digest;
 
 const FILENAME_BYTES : usize = 8;
@@ -105,7 +104,7 @@ fn read_file(filename: &Path) -> Result<String, io::Error> {
 trait MatchesExt {
     fn opt_str_or(&self, opt: &str, default: &str) -> String;
 }
-impl MatchesExt for Matches {
+impl MatchesExt for getopts::Matches {
     fn opt_str_or(&self, opt: &str, default: &str) -> String {
         self.opt_str(opt).unwrap_or(default.to_string())
     }
@@ -180,7 +179,7 @@ fn render_notes(indir: &str, outdir: &str, config: &Config) -> io::Result<()> {
     Ok(())
 }
 
-fn usage(program: &str, opts: &Options, error: bool) {
+fn usage(program: &str, opts: &getopts::Options, error: bool) {
     let brief = format!("usage: {} [OPTIONS] NOTEDIR", program);
     let message = opts.usage(&brief);
     let message_bytes = message.as_bytes();
@@ -239,52 +238,69 @@ fn load_config(confdir: &str) -> Result<Config, &'static str> {
     })
 }
 
-fn main() {
-    // Parse command-line options.
-    let outdir : String;
-    let indir : String;
-    let confdir : String;
-    {
-        let args: Vec<String> = env::args().collect();
-        let program = args[0].clone();
+struct Options {
+    indir: String,
+    outdir: String,
+    confdir: String,
+    quiet: bool,
+}
 
-        let mut opts = Options::new();
-        opts.optopt("o", "out", "output directory", "PATH");
-        opts.optflag("h", "help", "show this help message");
-        opts.optopt("c", "config", "configuration directory", "PATH");
-        let matches = match opts.parse(&args[1..]) {
-            Ok(m) => { m }
-            Err(f) => {
-                writeln!(&mut std::io::stderr(), "{}", f).unwrap();
-                usage(&program, &opts, true);
-                std::process::exit(1);
+fn get_options() -> Options {
+    let args: Vec<String> = env::args().collect();
+    let program = args[0].clone();
 
-                // Because this is unstable:
-                // std::env::set_exit_status(1);
-                // return;
-            }
-        };
+    let mut opts = getopts::Options::new();
+    opts.optopt("o", "out", "output directory", "PATH");
+    opts.optflag("h", "help", "show this help message");
+    opts.optopt("c", "config", "configuration directory", "PATH");
+    opts.optflag("q", "quiet", "do not show progress");
+    let matches = match opts.parse(&args[1..]) {
+        Ok(m) => { m }
+        Err(f) => {
+            writeln!(&mut std::io::stderr(), "{}", f).unwrap();
+            usage(&program, &opts, true);
+            std::process::exit(1);
 
-        // Help flag.
-        if matches.opt_present("help") {
-            usage(&program, &opts, false);
-            return;
+            // Because this is unstable:
+            // std::env::set_exit_status(1);
+            // return;
         }
+    };
 
-        // Directories for rendering.
-        outdir = matches.opt_str_or("out", "_public");
-        indir = if matches.free.len() >= 1 {
-            matches.free[0].clone()
-        } else {
-            ".".to_string()
-        };
-        confdir = matches.opt_str_or("config", "_knot");
+    // Help flag.
+    if matches.opt_present("help") {
+        usage(&program, &opts, false);
+        std::process::exit(0);  // Maybe return instead?
     }
 
-    // Configuration.
-    let config = load_config(&confdir).unwrap();
+    // Directories for rendering.
+    let outdir = matches.opt_str_or("out", "_public");
+    let indir = if matches.free.len() >= 1 {
+        matches.free[0].clone()
+    } else {
+        ".".to_string()
+    };
+    let confdir = matches.opt_str_or("config", "_knot");
 
-    if let Err(err) = render_notes(&indir, &outdir, &config) {
+    // Quiet flag.
+    let quiet = matches.opt_present("quiet");
+
+    Options {
+        indir: indir,
+        outdir: outdir,
+        confdir: confdir,
+        quiet: quiet,
+    }
+}
+
+fn main() {
+    // Parse command-line options.
+    let opts = get_options();
+
+    // Configuration.
+    let config = load_config(&opts.confdir).unwrap();
+
+    if let Err(err) = render_notes(&opts.indir, &opts.outdir, &config) {
         println!("rendering failed: {}", err);
     }
 }
