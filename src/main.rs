@@ -39,9 +39,14 @@ fn hash_str(h: &mut Digest, nbytes: usize) -> String {
     bytes[0 .. trunc - 1].to_base64(config)
 }
 
-fn note_dirname(name: &str, secret: &str) -> String {
+fn note_dirname(note_path: &Path, secret: &str) -> String {
+    let name = note_path.file_stem().unwrap();  // Better have a name!
+
     let mut h = crypto::sha2::Sha256::new();
-    h.input_str(name);
+    // Eventually, this should use the raw data: bytes on Unix, something
+    // (Unicode with surrogates?) on Windows. But Path::as_bytes() is
+    // currently unstable.
+    h.input_str(&name.to_string_lossy());
     h.input_str(secret);
     hash_str(&mut h, FILENAME_BYTES)
 }
@@ -126,7 +131,7 @@ fn is_note(e: &fs::DirEntry) -> bool {
 fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
     if let Some(name) = note.file_name() {
         // Get the destination and create its enclosing directory.
-        let basename = note_dirname(&name.to_string_lossy(), &config.secret);
+        let basename = note_dirname(&note, &config.secret);
         let notedir = destdir.join(basename);
         try!(std::fs::create_dir_all(&notedir));
         let dest = notedir.join("index.html");
