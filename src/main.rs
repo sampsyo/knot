@@ -19,6 +19,7 @@ use rustc_serialize::base64;
 use rustc_serialize::base64::ToBase64;
 
 const FILENAME_BYTES : usize = 10;
+const MARKDOWN_NOTE_NAME : &'static str = "note.md";
 
 fn hash_str(h: &mut Digest, nbytes: usize) -> String {
     let hashbytes = h.output_bytes();
@@ -102,6 +103,9 @@ fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
             .build();
         let mut f = try!(fs::File::create(dest));
         config.template.render_data(&mut f, &data);
+
+        // Also copy the raw Markdown to the directory.
+        try!(fs::copy(note, notedir.join(MARKDOWN_NOTE_NAME)));
     } else {
         println!("no filename"); // how?
     }
