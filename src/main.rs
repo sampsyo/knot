@@ -10,6 +10,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::env;
+use std::ascii::AsciiExt;
 
 use pulldown_cmark::{Parser, Event, Tag};
 use pulldown_cmark::html;
@@ -29,7 +30,8 @@ fn hash_str(h: &mut Digest, nbytes: usize) -> String {
         else { nbytes };
     let trunc_bytes = &bytes[0 .. trunc - 1];
 
-    base32::encode(base32::Alphabet::Crockford, trunc_bytes)
+    let slug = base32::encode(base32::Alphabet::Crockford, trunc_bytes);
+    slug.to_ascii_lowercase()
 }
 
 fn note_dirname(note_path: &Path, secret: &str) -> String {
