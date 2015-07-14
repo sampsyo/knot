@@ -17,11 +17,7 @@ use crypto::digest::Digest;
 use rustc_serialize::base64;
 use rustc_serialize::base64::ToBase64;
 
-// Hash wrappers.
-fn hash(s: &str) -> String {
-    let mut h = crypto::sha2::Sha256::new();
-    h.input_str(s);
-
+fn hash_str(h: &mut Digest) -> String {
     let mut bytes : Vec<u8> = vec![0; h.output_bytes()];
     h.result(&mut bytes);
 
@@ -32,6 +28,13 @@ fn hash(s: &str) -> String {
         line_length: None,
     };
     bytes.to_base64(config)
+}
+
+fn note_filename(name: &str, secret: &str) -> String {
+    let mut h = crypto::sha2::Sha256::new();
+    h.input_str(name);
+    h.input_str(secret);
+    hash_str(&mut h) + ".html" // TODO truncate
 }
 
 // Stolen from the pulldown_cmark example.
@@ -78,7 +81,7 @@ fn is_note(e: &fs::DirEntry) -> bool {
 
 fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
     if let Some(name) = note.file_name() {
-        let key = hash(&name.to_string_lossy()); // TODO use secret
+        let key = note_filename(&name.to_string_lossy(), ""); // TODO use secret
 
         let dest = destdir.join(key);
         println!("{:?} -> {:?}", note, dest);
