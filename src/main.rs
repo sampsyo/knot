@@ -3,6 +3,7 @@ extern crate getopts;
 extern crate toml;
 extern crate crypto;
 extern crate rustc_serialize;
+extern crate mustache;
 
 use std::io;
 use std::io::{Read, Write};
@@ -93,13 +94,9 @@ fn render_note(note: &Path, destdir: &Path) -> io::Result<()> {
         let dest = destdir.join(key);
         println!("{:?} -> {:?}", note, dest);
 
-        match read_file(note) {
-            Err(err) => println!("could not read note {:?}: {}", name, err),
-            Ok(md) => {
-                let html = markdown_to_html(&md);
-                try!(dump_file(&dest, &html));
-            }
-        }
+        let md = try!(read_file(note));
+        let html = markdown_to_html(&md);
+        try!(dump_file(&dest, &html));
     } else {
         println!("no filename"); // how?
     }
@@ -133,6 +130,50 @@ fn usage(program: &str, opts: &Options, error: bool) {
     } else {
         io::stdout().write_all(&message_bytes).unwrap();
     }
+}
+
+struct Config {
+    secret: String,
+    template: mustache::Template,
+}
+
+fn load_config(confdir: &str) -> Result<Config, &'static str> {
+    let confdirpath = Path::new(&confdir);
+    let conffilepath = confdirpath.join("knot.toml");
+
+    // Load the configuration.
+    let conftoml = match read_file(&conffilepath) {
+      Err(_) => return Err("no config"),
+      Ok(t) => t
+    };
+    let mut parser = toml::Parser::new(&conftoml);
+    let configdata = match parser.parse() {
+        Some(v) => v,
+        None => {
+            println!("TOML parse error: {:?}", parser.errors);
+            return Err("could not parse config");
+        }
+    };
+
+    // Extract useful information from the configuration.
+    let secret = match configdata["secret"].as_str() {
+        Some(v) => v,
+        None => {
+            return Err("secret must be a string");
+        }
+    };
+
+    // Load and compile the template.
+    let templpath = confdirpath.join("template.html");
+    let templ = match mustache::compile_path(templpath) {
+        Err(_) => return Err("no template found"),
+        Ok(t) => t
+    };
+
+    Ok(Config {
+        secret: secret.to_string(),
+        template: templ,
+    })
 }
 
 fn main() {
@@ -178,21 +219,7 @@ fn main() {
     }
 
     // Configuration.
-    {
-        let confdirpath = Path::new(&confdir);
-        let conffilepath = confdirpath.join("knot.toml");
-        if let Ok(conftoml) = read_file(&conffilepath) {
-            let mut parser = toml::Parser::new(&conftoml);
-            match parser.parse() {
-                Some(value) => println!("config: {:?}", value),
-                None => {
-                    println!("could not parse config: {:?}", parser.errors);
-                }
-            }
-        } else {
-            println!("no config");
-        }
-    }
+    let config = load_config(&confdir).unwrap();
 
     println!("{:?} -> {:?}", indir, outdir);
     if let Err(err) = render_notes(&indir, &outdir) {
