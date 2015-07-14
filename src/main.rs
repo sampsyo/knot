@@ -153,14 +153,12 @@ fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
     Ok(())
 }
 
-fn render_notes(indir: &str, outdir: &str, config: &Config) -> io::Result<()> {
-    let outpath = Path::new(&outdir);
-
+fn render_notes(config: &Config) -> io::Result<()> {
     // Render the notes themselves.
-    for entry in try!(fs::read_dir(indir)) {
+    for entry in try!(fs::read_dir(&config.indir)) {
         let e = try!(entry);
         if is_note(&e) {
-            try!(render_note(&e.path(), &outpath, &config));
+            try!(render_note(&e.path(), &config.outdir, &config));
         }
     }
 
@@ -171,7 +169,7 @@ fn render_notes(indir: &str, outdir: &str, config: &Config) -> io::Result<()> {
             let e = try!(entry);
             // TODO copy directories too
             let frompath = e.path();
-            let topath = outpath.join(e.file_name());
+            let topath = config.outdir.join(e.file_name());
             if !config.quiet {
                 println!("{} -> {}", frompath.to_string_lossy(),
                          topath.to_string_lossy());
@@ -199,12 +197,14 @@ fn usage(program: &str, opts: &getopts::Options, error: bool) {
 struct Config {
     secret: String,
     template: mustache::Template,
+    indir: PathBuf,
+    outdir: PathBuf,
     confdir: PathBuf,
     quiet: bool,
 }
 
-fn load_config(options: &Options) -> Result<Config, &'static str> {
-    let confdirpath = PathBuf::from(&options.confdir);
+fn load_config(opts: Options) -> Result<Config, &'static str> {
+    let confdirpath = PathBuf::from(opts.confdir);
     let conffilepath = confdirpath.join("knot.toml");
 
     // Load the configuration.
@@ -239,8 +239,10 @@ fn load_config(options: &Options) -> Result<Config, &'static str> {
     Ok(Config {
         secret: secret.to_string(),
         template: templ,
+        indir: PathBuf::from(opts.indir),
+        outdir: PathBuf::from(opts.outdir),
         confdir: confdirpath,
-        quiet: options.quiet,
+        quiet: opts.quiet,
     })
 }
 
@@ -304,9 +306,9 @@ fn main() {
     let opts = get_options();
 
     // Configuration.
-    let config = load_config(&opts).unwrap();
+    let config = load_config(opts).unwrap();
 
-    if let Err(err) = render_notes(&opts.indir, &opts.outdir, &config) {
+    if let Err(err) = render_notes(&config) {
         println!("rendering failed: {}", err);
     }
 }
