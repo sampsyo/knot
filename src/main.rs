@@ -60,11 +60,6 @@ fn read_file(filename: &Path) -> Result<String, io::Error> {
     Ok(contents)
 }
 
-fn dump_file(filename: &Path, contents: &str) -> io::Result<()> {
-    let mut f = try!(fs::File::create(filename));
-    f.write_all(contents.as_bytes())
-}
-
 // A little convenient extension trait for getopts.
 trait MatchesExt {
     fn opt_str_or(&self, opt: &str, default: &str) -> String;
@@ -81,10 +76,10 @@ fn is_note(e: &fs::DirEntry) -> bool {
     let os_name = e.file_name();
     let name = os_name.to_string_lossy();
 
-    // Don't hardcode these! Also, eventually work with directories.
+    // TODO Don't hardcode these! Also, eventually work with directories.
     !name.starts_with(".") && !name.starts_with("_") &&
         (name.ends_with(".markdown") || name.ends_with(".md")
-         || name.ends_with(".mkdn"))
+         || name.ends_with(".mkdn") || name.ends_with(".txt"))
 }
 
 fn render_note(note: &Path, destdir: &Path, config: &Config) -> io::Result<()> {
