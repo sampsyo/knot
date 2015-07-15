@@ -141,6 +141,7 @@ fn render_note(note: &Path, config: &Config) -> io::Result<()> {
         let data = mustache::MapBuilder::new()
             .insert_str("content", content)
             .insert_str("title", title)
+            .insert_str("sourcefile", MARKDOWN_NOTE_NAME)
             .build();
         let mut f = try!(fs::File::create(dest));
         config.template.render_data(&mut f, &data);
