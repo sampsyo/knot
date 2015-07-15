@@ -142,6 +142,7 @@ fn render_note(note: &Path, config: &Config) -> io::Result<()> {
             .insert_str("content", content)
             .insert_str("title", title)
             .insert_str("sourcefile", MARKDOWN_NOTE_NAME)
+            .insert_str("key", basename)
             .build();
         let mut f = try!(fs::File::create(dest));
         config.template.render_data(&mut f, &data);
