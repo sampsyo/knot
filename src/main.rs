@@ -143,12 +143,9 @@ fn render_note(note: &Path, config: &Config) -> io::Result<()> {
     Ok(())
 }
 
+// Vec::contains, but for String/&str matching.
 fn str_vec_contains(v: &Vec<String>, s: &str) -> bool {
-    if let Some(_) = v.iter().position(|t| t == s) {
-        true
-    } else {
-        false
-    }
+    v.iter().any(|t| t == s)
 }
 
 // Get the last chunk after a dot in a string, if the string contains a dot. If
@@ -187,7 +184,7 @@ fn render_entry(entry: &fs::DirEntry, config: &Config) -> io::Result<()> {
         // TODO
         Ok(())
     } else {
-        // TODO Use the config's "extensions" vector.
+        // Test file extension.
         if let Some(ext) = extension(&name) {
             if str_vec_contains(&config.extensions, &ext) {
                 render_note(&entry.path(), &config)
