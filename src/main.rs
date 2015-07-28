@@ -110,31 +110,6 @@ impl MatchesExt for getopts::Matches {
     }
 }
 
-fn is_note(e: &fs::DirEntry) -> bool {
-    // This is a little sad. Waiting on:
-    // https://github.com/rust-lang/rfcs/issues/900
-    let os_name = e.file_name();
-    let name = os_name.to_string_lossy();
-
-    // TODO Don't hardcode these!
-    if name.starts_with(".") || name.starts_with("_") {
-        return false;
-    }
-
-    match e.file_type() {
-        Err(_) => false,
-        Ok(ft) =>
-            if ft.is_dir() {
-                // All directories are notes.
-                true
-            } else {
-                // TODO also these!
-                (name.ends_with(".markdown") || name.ends_with(".md")
-                 || name.ends_with(".mkdn") || name.ends_with(".txt"))
-            }
-    }
-}
-
 fn render_note(note: &Path, config: &Config) -> io::Result<()> {
     if let Some(name) = note.file_name() {
         // Get the destination and create its enclosing directory.
@@ -168,13 +143,42 @@ fn render_note(note: &Path, config: &Config) -> io::Result<()> {
     Ok(())
 }
 
+// Try to render one of the things in the source directory. This only does
+// anything if the entry looks note-like, based on its filename.
+// TODO It should probably return a boolean indicating whether it did anything.
+fn render_entry(entry: &fs::DirEntry, config: &Config) -> io::Result<()> {
+    // This is a little sad. Waiting on:
+    // https://github.com/rust-lang/rfcs/issues/900
+    let os_name = entry.file_name();
+    let name = os_name.to_string_lossy();
+
+    // Filter out invisible names and our own bookkeeping.
+    // TODO Don't hardcode these!
+    if name.starts_with(".") || name.starts_with("_") {
+        return Ok(());
+    }
+
+    let ft = try!(entry.file_type());
+    if ft.is_dir() {
+        // All directories are notes.
+        // TODO
+        Ok(())
+    } else {
+        // TODO *Definitely* don't hardcode these!
+        if name.ends_with(".markdown") || name.ends_with(".md")
+                || name.ends_with(".mkdn") || name.ends_with(".txt") {
+            render_note(&entry.path(), &config)
+        } else {
+            Ok(())
+        }
+    }
+}
+
 fn render_notes(config: &Config) -> io::Result<()> {
     // Render the notes themselves.
     for entry in try!(fs::read_dir(&config.indir)) {
         let e = try!(entry);
-        if is_note(&e) {
-            try!(render_note(&e.path(), &config));
-        }
+        try!(render_entry(&e, &config));
     }
 
     // Copy the static files.
