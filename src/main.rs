@@ -220,6 +220,7 @@ struct Config {
     outdir: PathBuf,
     confdir: PathBuf,
     quiet: bool,
+    extensions: Vec<String>,
 }
 
 fn load_config(opts: Options) -> Result<Config, &'static str> {
@@ -241,12 +242,27 @@ fn load_config(opts: Options) -> Result<Config, &'static str> {
         }
     };
 
-    // Extract useful information from the configuration.
+    // Extract secret from the configuration.
     let secret = match configdata["secret"].as_str() {
         Some(v) => v,
         None => {
             return Err("secret must be a string");
         }
+    };
+
+    // Extract extensions from the configuration.
+    let extensions = match configdata["extensions"].as_slice() {
+        Some(vs) => {
+            let mut ss: Vec<String> = Vec::new();
+            for v in vs {
+                match v.as_str() {
+                    Some(s) => ss.push(s.to_string()),
+                    None => return Err("extensions must be strings")
+                };
+            };
+            ss
+        },
+        None => return Err("extensions must be a list")
     };
 
     // Load and compile the template.
@@ -263,6 +279,7 @@ fn load_config(opts: Options) -> Result<Config, &'static str> {
         outdir: PathBuf::from(opts.outdir),
         confdir: confdirpath,
         quiet: opts.quiet,
+        extensions: extensions,
     })
 }
 
