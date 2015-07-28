@@ -164,7 +164,7 @@ fn render_entry(entry: &fs::DirEntry, config: &Config) -> io::Result<()> {
         // TODO
         Ok(())
     } else {
-        // TODO *Definitely* don't hardcode these!
+        // TODO Use the config's "extensions" vector.
         if name.ends_with(".markdown") || name.ends_with(".md")
                 || name.ends_with(".mkdn") || name.ends_with(".txt") {
             render_note(&entry.path(), &config)
@@ -243,6 +243,7 @@ fn load_config(opts: Options) -> Result<Config, &'static str> {
     };
 
     // Extract secret from the configuration.
+    // TODO check for missing key
     let secret = match configdata["secret"].as_str() {
         Some(v) => v,
         None => {
@@ -251,6 +252,7 @@ fn load_config(opts: Options) -> Result<Config, &'static str> {
     };
 
     // Extract extensions from the configuration.
+    // TODO check for missing key
     let extensions = match configdata["extensions"].as_slice() {
         Some(vs) => {
             let mut ss: Vec<String> = Vec::new();
