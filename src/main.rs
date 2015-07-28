@@ -116,10 +116,23 @@ fn is_note(e: &fs::DirEntry) -> bool {
     let os_name = e.file_name();
     let name = os_name.to_string_lossy();
 
-    // TODO Don't hardcode these! Also, eventually work with directories.
-    !name.starts_with(".") && !name.starts_with("_") &&
-        (name.ends_with(".markdown") || name.ends_with(".md")
-         || name.ends_with(".mkdn") || name.ends_with(".txt"))
+    // TODO Don't hardcode these!
+    if name.starts_with(".") || name.starts_with("_") {
+        return false;
+    }
+
+    match e.file_type() {
+        Err(_) => false,
+        Ok(ft) =>
+            if ft.is_dir() {
+                // All directories are notes.
+                true
+            } else {
+                // TODO also these!
+                (name.ends_with(".markdown") || name.ends_with(".md")
+                 || name.ends_with(".mkdn") || name.ends_with(".txt"))
+            }
+    }
 }
 
 fn render_note(note: &Path, config: &Config) -> io::Result<()> {
@@ -218,6 +231,7 @@ fn load_config(opts: Options) -> Result<Config, &'static str> {
     let configdata = match parser.parse() {
         Some(v) => v,
         None => {
+            // TODO be more reasonable about returning this error.
             println!("TOML parse error: {:?}", parser.errors);
             return Err("could not parse config");
         }
@@ -308,6 +322,7 @@ fn main() {
     let opts = get_options();
 
     // Configuration.
+    // TODO do something sensible when config is missing.
     let config = load_config(opts).unwrap();
 
     if let Err(err) = render_notes(&config) {
