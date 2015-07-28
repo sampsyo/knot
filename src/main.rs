@@ -143,6 +143,29 @@ fn render_note(note: &Path, config: &Config) -> io::Result<()> {
     Ok(())
 }
 
+fn str_vec_contains(v: &Vec<String>, s: &str) -> bool {
+    if let Some(_) = v.iter().position(|t| t == s) {
+        true
+    } else {
+        false
+    }
+}
+
+// Get the last chunk after a dot in a string, if the string contains a dot. If
+// the string ends in a dot, the extension is the empty string.
+fn extension(s: &str) -> Option<&str> {
+    let mut split = s.rsplitn(2, ".");
+    if let Some(ext) = split.next() {
+        if let Some(_) = split.next() {
+            Some(ext)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
 // Try to render one of the things in the source directory. This only does
 // anything if the entry looks note-like, based on its filename.
 // TODO It should probably return a boolean indicating whether it did anything.
@@ -165,10 +188,15 @@ fn render_entry(entry: &fs::DirEntry, config: &Config) -> io::Result<()> {
         Ok(())
     } else {
         // TODO Use the config's "extensions" vector.
-        if name.ends_with(".markdown") || name.ends_with(".md")
-                || name.ends_with(".mkdn") || name.ends_with(".txt") {
-            render_note(&entry.path(), &config)
+        if let Some(ext) = extension(&name) {
+            if str_vec_contains(&config.extensions, &ext) {
+                render_note(&entry.path(), &config)
+            } else {
+                // Not a note extension.
+                Ok(())
+            }
         } else {
+            // No extension.
             Ok(())
         }
     }
