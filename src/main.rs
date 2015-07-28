@@ -277,19 +277,24 @@ fn load_config(opts: Options) -> Result<Config, &'static str> {
     };
 
     // Extract extensions from the configuration.
-    // TODO check for missing key
-    let extensions = match configdata["extensions"].as_slice() {
-        Some(vs) => {
-            let mut ss: Vec<String> = Vec::new();
-            for v in vs {
-                match v.as_str() {
-                    Some(s) => ss.push(s.to_string()),
-                    None => return Err("extensions must be strings")
+    let extensions = if let Some(extsvalue) = configdata.get("extensions") {
+        match extsvalue.as_slice() {
+            Some(vs) => {
+                let mut ss: Vec<String> = Vec::new();
+                for v in vs {
+                    match v.as_str() {
+                        Some(s) => ss.push(s.to_string()),
+                        None => return Err("extensions must be strings")
+                    };
                 };
-            };
-            ss
-        },
-        None => return Err("extensions must be a list")
+                ss
+            },
+            None => return Err("extensions must be a list")
+        }
+    } else {
+        // TODO any less-terrible way to do this?
+        vec!["md".to_string(), "mkdn".to_string(), "markdown".to_string(),
+             "txt".to_string()]
     };
 
     // Load and compile the template.
