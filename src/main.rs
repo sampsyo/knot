@@ -10,7 +10,6 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::env;
-use std::ascii::AsciiExt;
 
 use pulldown_cmark::{Parser, Event, Tag};
 use pulldown_cmark::html;
@@ -133,7 +132,7 @@ fn render_note(note: &Path, config: &Config) -> io::Result<()> {
             .insert_str("key", basename)
             .build();
         let mut f = try!(fs::File::create(dest));
-        config.template.render_data(&mut f, &data);
+        config.template.render_data(&mut f, &data).unwrap();
 
         // Also copy the raw Markdown to the directory.
         try!(fs::copy(note, notedir.join(MARKDOWN_NOTE_NAME)));
