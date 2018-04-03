@@ -257,15 +257,8 @@ fn load_config(opts: Options) -> Result<Config, &'static str> {
       Err(_) => return Err("no config"),
       Ok(t) => t
     };
-    let mut parser = toml::Parser::new(&conftoml);
-    let configdata = match parser.parse() {
-        Some(v) => v,
-        None => {
-            // TODO be more reasonable about returning this error.
-            println!("TOML parse error: {:?}", parser.errors);
-            return Err("could not parse config");
-        }
-    };
+    // TODO Handle parse errors.
+    let configdata = conftoml.parse::<toml::Value>().unwrap();
 
     // Extract secret from the configuration.
     // TODO check for missing key
@@ -278,7 +271,7 @@ fn load_config(opts: Options) -> Result<Config, &'static str> {
 
     // Extract extensions from the configuration.
     let extensions = if let Some(extsvalue) = configdata.get("extensions") {
-        match extsvalue.as_slice() {
+        match extsvalue.as_array() {
             Some(vs) => {
                 let mut ss: Vec<String> = Vec::new();
                 for v in vs {
