@@ -29,7 +29,7 @@ fn hash_str(h: &mut Digest, nbytes: usize) -> String {
     let trunc_bytes = &bytes[0 .. trunc - 1];
 
     let slug = base32::encode(base32::Alphabet::Crockford, trunc_bytes);
-    slug.to_ascii_lowercase()
+    slug.to_lowercase()
 }
 
 fn note_dirname(note_path: &Path, secret: &str) -> String {
