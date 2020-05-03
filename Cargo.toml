@@ -2,6 +2,7 @@
 name = "knot"
 version = "0.1.0"
 authors = ["Adrian Sampson <adrian@radbox.org>"]
+edition = "2018"
 
 [dependencies]
 pulldown-cmark = "^0.1.2"
