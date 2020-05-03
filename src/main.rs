@@ -18,7 +18,7 @@ use crypto::digest::Digest;
 const FILENAME_BYTES : usize = 8;
 const MARKDOWN_NOTE_NAME : &'static str = "note.md";
 
-fn hash_str(h: &mut Digest, nbytes: usize) -> String {
+fn hash_str(h: &mut dyn Digest, nbytes: usize) -> String {
     let hashbytes = h.output_bytes();
     let mut bytes : Vec<u8> = vec![0; hashbytes];
     h.result(&mut bytes);
@@ -93,9 +93,9 @@ fn render_markdown(text: &str) -> (String, String) {
 }
 
 fn read_file(filename: &Path) -> Result<String, io::Error> {
-    let mut file = try!(fs::File::open(filename));
+    let mut file = fs::File::open(filename)?;
     let mut contents = String::new();
-    try!(file.read_to_string(&mut contents));
+    file.read_to_string(&mut contents)?;
     Ok(contents)
 }
 
@@ -114,14 +114,14 @@ fn render_note(note: &Path, config: &Config) -> io::Result<()> {
         // Get the destination and create its enclosing directory.
         let basename = note_dirname(&note, &config.secret);
         let notedir = config.outdir.join(&basename);
-        try!(std::fs::create_dir_all(&notedir));
+        std::fs::create_dir_all(&notedir)?;
         let dest = notedir.join("index.html");
         if !config.quiet {
             println!("{} -> {}", name.to_string_lossy(), basename);
         }
 
         // Render the HTML from the Markdown.
-        let md = try!(read_file(note));
+        let md = read_file(note)?;
         let (content, title) = render_markdown(&md);
 
         // Render the template to the destination file.
@@ -131,11 +131,11 @@ fn render_note(note: &Path, config: &Config) -> io::Result<()> {
             .insert_str("sourcefile", MARKDOWN_NOTE_NAME)
             .insert_str("key", basename)
             .build();
-        let mut f = try!(fs::File::create(dest));
+        let mut f = fs::File::create(dest)?;
         config.template.render_data(&mut f, &data).unwrap();
 
         // Also copy the raw Markdown to the directory.
-        try!(fs::copy(note, notedir.join(MARKDOWN_NOTE_NAME)));
+        fs::copy(note, notedir.join(MARKDOWN_NOTE_NAME))?;
     } else {
         println!("no filename"); // how?
     }
@@ -177,7 +177,7 @@ fn render_entry(entry: &fs::DirEntry, config: &Config) -> io::Result<()> {
         return Ok(());
     }
 
-    let ft = try!(entry.file_type());
+    let ft = entry.file_type()?;
     if ft.is_dir() {
         // All directories are notes.
         // TODO
@@ -200,16 +200,16 @@ fn render_entry(entry: &fs::DirEntry, config: &Config) -> io::Result<()> {
 
 fn render_notes(config: &Config) -> io::Result<()> {
     // Render the notes themselves.
-    for entry in try!(fs::read_dir(&config.indir)) {
-        let e = try!(entry);
-        try!(render_entry(&e, &config));
+    for entry in fs::read_dir(&config.indir)? {
+        let e = entry?;
+        render_entry(&e, &config)?;
     }
 
     // Copy the static files.
     let staticdir = config.confdir.join("static");
     if let Ok(rd) = fs::read_dir(&staticdir) {
         for entry in rd {
-            let e = try!(entry);
+            let e = entry?;
             // TODO copy directories too
             let frompath = e.path();
             let topath = config.outdir.join(e.file_name());
@@ -217,7 +217,7 @@ fn render_notes(config: &Config) -> io::Result<()> {
                 println!("{} -> {}", frompath.to_string_lossy(),
                          topath.to_string_lossy());
             }
-            try!(fs::copy(frompath, topath));
+            fs::copy(frompath, topath)?;
         }
     }
 
