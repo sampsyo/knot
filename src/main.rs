@@ -52,9 +52,15 @@ fn render_markdown(text: &str) -> (String, String) {
     let mut the_header = String::new();
 
     let body = {
+        let options = ComrakOptions {
+            smart: true,
+            ext_header_ids: Some("".to_string()),
+            ..ComrakOptions::default()
+        };
+
         // Parse the Markdown.
         let arena = Arena::new();
-        let root = parse_document(&arena, &text, &ComrakOptions::default());
+        let root = parse_document(&arena, &text, &options);
 
         // Look for the first heading in the AST.
         for child in root.children() {
@@ -77,7 +83,7 @@ fn render_markdown(text: &str) -> (String, String) {
 
         // Render HTML.
         let mut html = vec![];
-        format_html(root, &ComrakOptions::default(), &mut html).unwrap();
+        format_html(root, &options, &mut html).unwrap();
         String::from_utf8(html).unwrap()
     };
 
