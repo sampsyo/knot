@@ -10,8 +10,10 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::env;
+use std::str;
 
 use comrak::{parse_document, format_html, Arena, ComrakOptions};
+use comrak::nodes::NodeValue;
 use crypto::digest::Digest;
 
 const FILENAME_BYTES : usize = 8;
@@ -54,36 +56,26 @@ fn render_markdown(text: &str) -> (String, String) {
         let arena = Arena::new();
         let root = parse_document(&arena, &text, &ComrakOptions::default());
 
-        // // Hook into the parser to pull out the first heading.
-        // let mut first_header = true;
-        // let mut in_header = false;
-        // let extracting_parser = parser.inspect(|event| {
-        //     match *event {
-        //         Event::Start(ref t) => {
-        //             match *t {
-        //                 Tag::Header(_) => if first_header {
-        //                     in_header = true;
-        //                     first_header = false;
-        //                 },
-        //                 _ => (),
-        //             }
-        //         },
-        //         Event::End(ref t) => {
-        //             match *t {
-        //                 Tag::Header(_) => if in_header {
-        //                     in_header = false;
-        //                 },
-        //                 _ => (),
-        //             }
-        //         },
-        //         Event::Text(ref s) => if in_header {
-        //             the_header.push_str(&s);
-        //         },
-        //         _ => (),
-        //     };
-        // });
+        // Look for the first heading in the AST.
+        for child in root.children() {
+            match child.data.borrow().value {
+                NodeValue::Heading(_) => {
+                    for child in child.children() {
+                        match &child.data.borrow().value {
+                            NodeValue::Text(text) => {
+                                the_header = str::from_utf8(text).unwrap().
+                                    to_string();
+                            },
+                            _ => ()
+                        }
+                    }
+                    break;
+                },
+                _ => (),
+            }
+        }
 
-        // Run the parser and render HTML.
+        // Render HTML.
         let mut html = vec![];
         format_html(root, &ComrakOptions::default(), &mut html).unwrap();
         String::from_utf8(html).unwrap()
