@@ -1,4 +1,4 @@
-extern crate pulldown_cmark;
+extern crate comrak;
 extern crate getopts;
 extern crate toml;
 extern crate crypto;
@@ -11,8 +11,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::env;
 
-use pulldown_cmark::{Parser, Event, Tag};
-use pulldown_cmark::html;
+use comrak::{parse_document, format_html, Arena, ComrakOptions};
 use crypto::digest::Digest;
 
 const FILENAME_BYTES : usize = 8;
@@ -51,42 +50,43 @@ fn render_markdown(text: &str) -> (String, String) {
     let mut the_header = String::new();
 
     let body = {
-        // Magic ratio stolen from the pulldown_cmark example.
-        let mut out = String::with_capacity(text.len() * 3 / 2);
-        let parser = Parser::new(&text);
+        // Parse the Markdown.
+        let arena = Arena::new();
+        let root = parse_document(&arena, &text, &ComrakOptions::default());
 
-        // Hook into the parser to pull out the first heading.
-        let mut first_header = true;
-        let mut in_header = false;
-        let extracting_parser = parser.inspect(|event| {
-            match *event {
-                Event::Start(ref t) => {
-                    match *t {
-                        Tag::Header(_) => if first_header {
-                            in_header = true;
-                            first_header = false;
-                        },
-                        _ => (),
-                    }
-                },
-                Event::End(ref t) => {
-                    match *t {
-                        Tag::Header(_) => if in_header {
-                            in_header = false;
-                        },
-                        _ => (),
-                    }
-                },
-                Event::Text(ref s) => if in_header {
-                    the_header.push_str(&s);
-                },
-                _ => (),
-            };
-        });
+        // // Hook into the parser to pull out the first heading.
+        // let mut first_header = true;
+        // let mut in_header = false;
+        // let extracting_parser = parser.inspect(|event| {
+        //     match *event {
+        //         Event::Start(ref t) => {
+        //             match *t {
+        //                 Tag::Header(_) => if first_header {
+        //                     in_header = true;
+        //                     first_header = false;
+        //                 },
+        //                 _ => (),
+        //             }
+        //         },
+        //         Event::End(ref t) => {
+        //             match *t {
+        //                 Tag::Header(_) => if in_header {
+        //                     in_header = false;
+        //                 },
+        //                 _ => (),
+        //             }
+        //         },
+        //         Event::Text(ref s) => if in_header {
+        //             the_header.push_str(&s);
+        //         },
+        //         _ => (),
+        //     };
+        // });
 
         // Run the parser and render HTML.
-        html::push_html(&mut out, extracting_parser);
-        out
+        let mut html = vec![];
+        format_html(root, &ComrakOptions::default(), &mut html).unwrap();
+        String::from_utf8(html).unwrap()
     };
 
     (body, the_header)

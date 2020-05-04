@@ -5,7 +5,7 @@ authors = ["Adrian Sampson <adrian@radbox.org>"]
 edition = "2018"
 
 [dependencies]
-pulldown-cmark = "^0.1.2"
+comrak = "0.7"
 getopts = "^0.2.11"
 toml = "^0.4.5"
 rust-crypto = "*"
